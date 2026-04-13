@@ -123,12 +123,15 @@ html,body{width:100%;height:100%;background:var(--navy);font-family:'Noto Serif 
 
 /* ── BOTTOM ── */
 .fbottom{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 20px}
-.caps-row{display:flex;gap:8px}
-.cap{padding:6px 16px;border-radius:20px;font-size:10px;letter-spacing:1.5px;
-     border:1px solid rgba(200,216,232,.15);color:var(--muted);
-     background:rgba(10,26,48,.6);transition:all .4s;display:flex;align-items:center;gap:5px}
-.cap.done{border-color:var(--teal-b);color:var(--teal-b);background:rgba(20,184,200,.08);
-          box-shadow:0 0 10px rgba(20,184,200,.14)}
+.caps-row{display:flex;gap:12px}
+.cap{width:20px;height:20px;border-radius:0;padding:0;font-size:16px;letter-spacing:0;
+     border:none;color:rgba(200,216,232,.4);
+     background:transparent;transition:all .4s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cap.done{color:var(--teal-b);text-shadow:0 0 12px var(--teal-b),0 0 24px rgba(20,184,200,.6);
+          animation:diamondGlow .6s ease-in-out}
+@keyframes diamondGlow{0%{text-shadow:0 0 0 var(--teal-b),0 0 8px rgba(20,184,200,.3)}
+50%{text-shadow:0 0 16px var(--teal-b),0 0 32px rgba(20,184,200,.8)}
+100%{text-shadow:0 0 12px var(--teal-b),0 0 24px rgba(20,184,200,.6)}}
 .cta-wrap{text-align:center}
 .cta-main{font-size:11px;color:var(--muted);letter-spacing:2px;opacity:.55}
 .cta-sub{font-size:9.5px;color:var(--gold);letter-spacing:2px;opacity:.5;margin-top:4px}
@@ -382,6 +385,7 @@ const IMG='data:image/png;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgA
 let remaining=[0,1,2];
 const sentSet=new Set();
 let currentCI=null;
+const flipped=new Set();  // tracks which cards have been flipped
 
 function sparksHTML(){
   return '<div class="sparks">'+Array.from({length:8},()=>
@@ -422,14 +426,17 @@ function buildStack(){
     const cf=document.createElement('div');cf.className='cf';
     cw.appendChild(cb);cw.appendChild(cf);
     stage.appendChild(cw);
+  });
 
-    // capsule
+  // always render all 3 diamond indicators, whether card is visible or not
+  for(let i=0; i<3; i++){
     const cap=document.createElement('div');
     cap.className='cap';
-    cap.id='cap-'+ci;
-    cap.innerHTML=`♦ 第${si+1}張`;
+    cap.id='cap-'+i;
+    cap.innerHTML='♦';
+    if(flipped.has(i)) cap.classList.add('done');
     caps.appendChild(cap);
-  });
+  }
 }
 
 function handleClick(ci){
@@ -438,7 +445,7 @@ function handleClick(ci){
 
   // mark capsule done immediately
   const cap=document.getElementById('cap-'+ci);
-  if(cap){cap.className='cap done';cap.innerHTML='✓ 已翻開';}
+  if(cap)cap.className='cap done';
 
   // play flip-out animation, then go to detail
   cw.classList.add('flipping-out');
@@ -490,8 +497,12 @@ function openDetail(ci){
 }
 
 function goBack(){
-  // remove flipped card, rebuild remaining so next card is centered (front)
-  if(currentCI!==null) remaining=remaining.filter(i=>i!==currentCI);
+  // record flipped card before removing from remaining
+  if(currentCI!==null){
+    flipped.add(currentCI);
+    remaining=remaining.filter(i=>i!==currentCI);
+  }
+  currentCI=null;  // reset current card index
 
   buildStack();
 
